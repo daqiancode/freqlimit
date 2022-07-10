@@ -1,6 +1,7 @@
 package freqlimit_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/daqiancode/freqlimit"
@@ -17,9 +18,16 @@ func getRedisClient() *redis.Client {
 func TestFreqLimit(t *testing.T) {
 	limit := freqlimit.NewFreqLimit(getRedisClient(), "user/1")
 	limit.AddLimit(1, 2)
+
+	left, err := limit.GetLeft()
+	assert.Nil(t, err)
+	fmt.Println(left)
 	ok, err := limit.Incr()
 	assert.Nil(t, err)
 	assert.True(t, ok)
+	left, err = limit.GetLeft()
+	assert.Nil(t, err)
+	fmt.Println(left)
 	ok, err = limit.Incr()
 	assert.Nil(t, err)
 	assert.True(t, ok)

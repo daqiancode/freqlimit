@@ -70,3 +70,37 @@ func (s *FreqLimit) Incr() (bool, error) {
 	}
 	return true, nil
 }
+
+//GetLeft return all window rest request count, window:left
+func (s *FreqLimit) GetLeft() (map[int64]int64, error) {
+	if len(s.limits) == 0 {
+		return nil, nil
+	}
+	t, err := s.red.Time(s.ctx).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	r := make(map[int64]int64, len(s.limits))
+	keys := make([]string, len(s.limits))
+	for i, v := range s.limits {
+		keys[i] = s.redisKey(v.Window, t.Unix())
+	}
+	countStrs, err := s.red.MGet(s.ctx, keys...).Result()
+	if err != nil {
+		return nil, err
+	}
+	for i, v := range countStrs {
+		w := s.limits[i]
+		if v == nil {
+			r[w.Window] = w.Max
+			continue
+		}
+		count, err := strconv.ParseInt(v.(string), 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		r[w.Window] = w.Max - count
+	}
+	return r, nil
+}
